@@ -1,0 +1,115 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Oculus Quest Demo</title>
+  <meta name="description" content="Oculus Quest Demo">
+  <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@7b3f4b5a611f13ce1e8d69ed4d670e3b95a0243d/dist/aframe-master.min.js"></script>
+  <script src="https://unpkg.com/aframe-environment-component@1.1.0/dist/aframe-environment-component.min.js"></script>
+  <script src="https://rawgit.com/fernandojsg/aframe-teleport-controls/master/dist/aframe-teleport-controls.min.js"></script>
+  <script src="//cdn.rawgit.com/donmccurdy/aframe-physics-system/v3.3.0/dist/aframe-physics-system.min.js"></script>
+  <!-- A-Frameのハンドトラッキングによるpinch(人差し指と親指)による動作の検知 -->
+  <script src="pinchable.js"></script>
+  <script src="obj-move.js"></script>
+</head>
+<script>
+  AFRAME.registerComponent('input-listener', {
+    init:
+      function () {
+        //コントローラのグリップボタンを押しているかどうかを保持
+        this.el.pinched = false;
+
+        //グリップボタンを押した時に呼ばれる
+        this.el.addEventListener('pinchstarted', function (e) {
+          //グリップボタン押下中
+          this.pinched = true;
+        });
+
+        //グリップボタンを話した時に呼ばれる
+        this.el.addEventListener('pinchended', function (e) {
+          //グリップボタン押下終了
+          this.pinched = false;
+        });
+
+        //handtrackingがpinch時に何かしらのオブジェクトにぶつかった時
+        this.el.addEventListener('hand-intersection', function (e) {
+          this.selectedObj = e.detail.els[0];
+        });
+
+        //handtrackingとオブジェクトとの接触完了
+        this.el.addEventListener('hand-intersection-cleared', function (e) {
+          this.selectedObj = null;
+        });
+      },
+
+    //毎フレーム呼ばれる
+    tick:
+      function () {
+        if (!this.el.selectedObj) { return; }
+        if (!this.el.pinched) { return; }
+        var position = this.el.getAttribute("position")
+        var p = new THREE.Vector3(position.x, position.y, position.z);
+        this.el.object3D.localToWorld(p);
+        //レイキャスターの先端に、選択中のオブジェクトを追従させる。
+        this.el.selectedObj.object3D.position.set(p.x, p.y, p.z);
+      }
+  });
+
+
+</script>
+
+<body>
+  <a-scene physics="debug: false; gravity: 0; restitution: 0.9; " background="color: #AAAAAA">
+    <a-entity
+        id="boxGeometry"
+        position="0.3 1.0 -0.5"
+        rotation="0 0 0"
+        geometry="primitive: box; height: 0.6; width: 0.6; depth: 0.6"
+        material="color: #ff4b5c"
+        obj-move
+        scale="0.1 0.1 0.1"
+      ></a-entity>
+    <a-box  static-body position="-1 0.5 -2" rotation="0 0 0" color="#4CC3D9" shadow> </a-box>
+    <a-entity id="cameraRig">
+      <a-entity id="head" camera wasd-controls look-controls position="0 1.6 0">
+      </a-entity>
+      <a-entity id="left-hand" hand-tracking-controls="hand: left" input-listener></a-entity>
+      <a-entity id="right-hand" hand-tracking-controls="hand: right" input-listener></a-entity>
+      
+     <!-- デバック用の設定-->
+       <a-entity camera look-controls position="0 1.6 0">
+         <a-text id="txt" value="" position="0 0 -1" scale="0.4 0.4 0.4" align="center" color="#000000"></a-text>
+         <a-text id="txt2" value="" position="0 -0.15 -1" scale="0.4 0.4 0.4" align="center" color="#000000"></a-text>
+         <a-text id="txt3" value="" position="0 -0.3 -1" scale="0.4 0.4 0.4" align="center" color="#000000"></a-text>
+         <a-text id="txt4" value="" position="0 -0.45 -1" scale="0.4 0.4 0.4" align="center" color="#000000"></a-text>
+      </a-entity>
+      
+      </a-entity>
+  </a-scene>
+</body>
+<script>      
+    <!-- デバック用の設定-->
+    const leftPinch = document.getElementById("left-hand");
+    const rightPinch = document.getElementById("right-hand");
+    const boxGeometry = document.getElementById("boxGeometry");
+    
+    const timer = setInterval(() => {
+      txt2.setAttribute("value","Please pinch: ");
+      var s = boxGeometry.object3D.position; 
+      txt3.setAttribute("value", s.x.toFixed(2)+", "+ s.y.toFixed(2)+", "+ s.z.toFixed(2));
+    }, 100);
+  
+    leftPinch.addEventListener('pinchmoved',function(event){
+        txt.setAttribute("value", "left-pinchmoved:");
+      });
+    leftPinch.addEventListener('pinchended',function(event){
+        txt.setAttribute("value", " left-pinchended:");
+      });
+    rightPinch.addEventListener('pinchmoved',function(event){
+        txt.setAttribute("value", " right-pinchmoved:");
+      });
+    rightPinch.addEventListener('pinchended',function(event){
+        txt.setAttribute("value", " right-pinchended:");
+      });
+</script>
+</html>
+
